@@ -2,11 +2,14 @@
 #define __CONFIG_H__
 
 #include <stdint.h>
+#include <sys/socket.h>
 #include <iniparser.h>
+
 
 typedef struct _server_config {
     char *addr;
     uint16_t port;
+    char *proto;
     char *root;
     char *index;
 } server_config;

@@ -10,8 +10,8 @@
 #define TCP_ERR_ACCEPT      -5
 #define TCP_ERR_FILE        -6
 
-#define MAX_BUFF            3096
-#define MAX_CONTENT         2048
+#define MAX_BUFF            4096 // 4KB
+#define MAX_CONTENT         MAX_BUFF - 1024 
 
 #include "config/config.h"
 
@@ -31,8 +31,9 @@ typedef struct _tcp_socket {
 
 extern tcp_socket *new_socket(uint32_t addr, uint16_t port, uint8_t proto);
 extern void close_socket(tcp_socket *sock);
-extern void listen_socket(tcp_socket *sock, int backlog);
+extern int getproto(char *proto);
 extern int test_connection(tcp_socket *sock);
 extern int test_connection_index(tcp_socket *sock, server_config *conf);
+extern int listen_connections(tcp_socket *sock, server_config *conf);
 
 #endif

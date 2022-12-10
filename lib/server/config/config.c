@@ -22,6 +22,7 @@ server_config *parse_config(dictionary *config) {
     server_config *cfg = malloc(sizeof(server_config));
     cfg->addr = (char *)iniparser_getstring(config, "server:ip", NULL);
     cfg->port = iniparser_getint(config, "server:port", -1);
+    cfg->proto = (char *)iniparser_getstring(config, "server:proto", NULL);
     cfg->root = (char *)iniparser_getstring(config, "server:root", NULL);
     cfg->index = (char *)iniparser_getstring(config, "server:index", NULL);
 
@@ -36,5 +37,5 @@ void close_config(dictionary *config) {
 
 // print config file
 void print_config(server_config *config) {
-    printf("Port: %d\nIP: %s\nRoot: %s\nIndex: %s\n", config->port, config->addr, config->root, config->index);
+    printf("Port: %d\nIP: %s\nProto: %s\nRoot: %s\nIndex: %s\n", config->port, config->addr, config->proto, config->root, config->index);
 }

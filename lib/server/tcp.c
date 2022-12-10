@@ -1,8 +1,10 @@
 #include "tcp.h"
+#include "http.h"
 #include "config/config.h"
 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <time.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -21,7 +23,7 @@ tcp_socket *new_socket(in_addr_t addr, in_port_t port, uint8_t proto) {
     tcp_socket *sock = malloc(sizeof(tcp_socket));
     sock->addr = addr;
     sock->port = port;
-    sock->proto = AF_INET;
+    sock->proto = proto;
     sock->fd_sock = socket(sock->proto, SOCK_STREAM, 0);
 
     sock->addr_in = malloc(sizeof(struct sockaddr_in));
@@ -59,6 +61,14 @@ void close_socket(tcp_socket *sock) {
     free(sock);
 }
 
+int getproto(char *proto) {
+    if (strcmp(proto, "IPv4") == 0) {
+        return AF_INET;
+    } else if (strcmp(proto, "IPv6") == 0) {
+        return AF_INET6;
+    }
+    return AF_INET;
+}
 
 /*
     Connection-related Method
@@ -90,17 +100,35 @@ int test_connection(tcp_socket *sock) {
         char msg[MAX_BUFF];
         memset(msg, 0, sizeof(msg));
 
+        char content[MAX_CONTENT];
+        memset(content, 0, sizeof(content));
+        strcpy(content, "Connection OK\r\n");
+
+        time_t t_date = time(NULL);
+        char date[38] = "Date: ";
+
+        strcat(date, ctime(&t_date));
+
+        int len = strlen(content);
+        char lenitoa[8];
+        sprintf(lenitoa, "%d", len);
+        char len_str[28] = "Content-Length: ";
+        strcat(len_str, lenitoa);
+        strcat(len_str, "\r\n");
+
         strcpy(msg, "HTTP/1.1 200 OK\r\n");
+        strcat(msg, date);
+        strcat(msg, "Server: Schifo Server/1.0\r\n");
         strcat(msg, "Content-type: text/html\r\n");
+        strcat(msg, len_str);
         strcat(msg, "Connection: close\r\n");
         strcat(msg, "\r\n");
-        strcat(msg, "Connection OK\r\n");
+        strcat(msg, content);
         write(fd_conn, msg, sizeof(msg));
     }
 
     return 0;
 }
-
 
 int test_connection_index(tcp_socket *sock, server_config *conf) {
     if (listen(sock->fd_sock, 5) < 0) {
@@ -127,6 +155,7 @@ int test_connection_index(tcp_socket *sock, server_config *conf) {
         memset(msg, 0, sizeof(msg));
 
         char content[MAX_CONTENT];
+        memset(content, 0, sizeof(content));
         char *path = strcat(conf->root, conf->index);
 
 
@@ -139,11 +168,27 @@ int test_connection_index(tcp_socket *sock, server_config *conf) {
 
         // read index.html in content
         fread(content, sizeof(char), MAX_CONTENT, fp);
+        strcat(content, "\r\n");
         fclose(fp);
 
 
+        time_t t_date = time(NULL);
+        char date[38] = "Date: ";
+
+        strcat(date, ctime(&t_date));
+
+        int len = strlen(content);
+        char lenitoa[8];
+        sprintf(lenitoa, "%d", len);
+        char len_str[28] = "Content-Length: ";
+        strcat(len_str, lenitoa);
+        strcat(len_str, "\r\n");
+
         strcpy(msg, "HTTP/1.1 200 OK\r\n");
+        strcat(msg, date);
+        strcat(msg, "Server: Schifo Server/1.0\r\n");
         strcat(msg, "Content-type: text/html\r\n");
+        strcat(msg, len_str);
         strcat(msg, "Connection: close\r\n");
         strcat(msg, "\r\n");
         strcat(msg, content);
@@ -151,4 +196,21 @@ int test_connection_index(tcp_socket *sock, server_config *conf) {
     }
 
     return 0;
+}
+
+
+// listen connections and handle them in a new thread for each connection
+// responde with index.html in root directory
+int listen_connections(tcp_socket *sock, server_config *conf) {
+    pid_t pid;
+    
+    while (1) {
+        pid = fork();
+        if (pid == 0) {
+            http_handle_request(sock, conf);
+            return 0;
+        } else {
+            wait(NULL);
+        }
+    }
 }

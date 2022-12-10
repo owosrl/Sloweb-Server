@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
                 sock = new_socket(INADDR_ANY, 0, AF_INET);
             } else {
                 print_config(conf);
-                sock = new_socket(inet_addr(conf->addr), conf->port, AF_INET);
+                sock = new_socket(inet_addr(conf->addr), conf->port, getproto(conf->proto));
             }
             break;
         case 2:
@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
             return -1;
         }
     } else {
-        if (test_connection_index(sock, conf) < 0) {
+        if (listen_connections(sock, conf) < 0) {
             close_socket(sock);
             printf("Error testing connection\n");
             return -1;
